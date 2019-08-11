@@ -180,3 +180,6 @@ $RECYCLE.BIN/
 
 #Ionide 
 .ionide/
+
+#rider 
+.idea/
