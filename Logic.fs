@@ -2,24 +2,37 @@ module Logic
 
 open System
 //build a pipeline of operations ie (discount , tax , discount) or (tax, discount, discount) etc
-type Product = {Name:string;  UPC:string;Price:decimal;} 
-
-type Invoice = {Tax:decimal; Discount:decimal; Total:decimal}//discount should be a list of its own type
+type UPC = string
+type Product = {Name:string;  UPC:UPC;Price:decimal;} 
+type GeneralDiscount = {Percent:decimal; Amount:decimal;PerTax:bool}
+type UpcDiscount = {UPC:UPC list; Percent:decimal;PreTax:bool}
+type Discount =
+    | GeneralDiscount of GeneralDiscount
+    | UpcDiscount of UpcDiscount
+type Invoice = {Tax:decimal; Discount:Discount; Total:decimal}//discount should be a list of its own type
  
 let DefaultRounding (x:decimal) =     
     Math.Round(x,2)
 let calcTax tax price =
     price * tax |> DefaultRounding
 
-let calcDiscount discount price  =
-    price * discount |> DefaultRounding
+let calcDiscount (discount:GeneralDiscount) price  =
+    price * discount.Percent |> DefaultRounding
     
-let UpcDiscount upc discount pUPC price =
-    if upc = pUPC then
-        price * discount |> DefaultRounding
-    else
-        0M
- 
+let UpcDiscount discount pUPC price =
+    discount.UPC
+    |> List.tryFind (fun x-> x = pUPC)
+    |> Option.map(fun _ -> price * discount.Percent |> DefaultRounding)
+    |> Option.defaultValue 0M
+    
+    
+    
+let Dis (discount:Discount) (product:Product) =
+    match discount with
+    | GeneralDiscount d  -> calcDiscount d product.Price
+    |UpcDiscount u  -> UpcDiscount u product.UPC product.Price
+    
+        
 
 let calcTotal calcTax calcDiscount upcDiscount posttax upcPostTax product =       
     match (posttax,upcPostTax) with
